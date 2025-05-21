@@ -278,7 +278,7 @@ class CameraCtrlsWindow(Gtk.ApplicationWindow):
 
         stack_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=10, vexpand=True, halign=Gtk.Align.FILL)
 
-        self.camera_box = Gtk.Box()
+        self.camera_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=10, vexpand=True, halign=Gtk.Align.FILL)
         stack_box.pack_start(self.camera_box, False, True, 0)
 
         stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT, transition_duration=500)
@@ -496,13 +496,18 @@ class CameraCtrlsWindow(Gtk.ApplicationWindow):
 
     def start_gstreamer(self, device):
 
+        if device == None:
+            return
+
         Gst.init(None)
 
         if self.pipeline:
             self.pipeline.set_state(Gst.State.NULL)
+            self.pipelint = None
 
         if self.widgetSink:
             self.camera_box.remove(self.widgetSink)
+            self.widgetSink = None
 
         pipeline_string = "v4l2src device = " + device.real_path + " ! videoconvert ! gtksink name=sink"
         print(pipeline_string)
