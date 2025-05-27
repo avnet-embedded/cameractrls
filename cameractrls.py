@@ -3311,8 +3311,7 @@ class CameraCtrls:
                 CtrlCategory('Codec', pop_list_by_base_id(ctrls, V4L2_CID_CODEC_BASE)),
                 CtrlCategory('JPEG', pop_list_by_base_id(ctrls, V4L2_CID_JPEG_CLASS_BASE)),
             ]),
-            CtrlPage('Capture', [
-                CtrlCategory('Capture', pop_list_by_text_ids(ctrls, ['pixelformat', 'resolution', 'fps'])),
+            CtrlPage('Info', [
                 CtrlCategory('Info', pop_list_by_text_ids(ctrls, ['card', 'driver', 'path', 'real_path'])),
             ]),
             CtrlPage('Settings', [

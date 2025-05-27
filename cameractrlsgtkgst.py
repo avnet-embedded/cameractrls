@@ -123,7 +123,7 @@ class CameraCtrlsWindow(Gtk.ApplicationWindow):
         )
         refresh_button.connect('clicked', lambda e: self.refresh_devices())
 
-        headerbar = Gtk.HeaderBar(title='Cameractrls', show_close_button=True)
+        headerbar = Gtk.HeaderBar(title='Cameractrls', show_close_button=False)
         headerbar.pack_start(refresh_button)
         headerbar.pack_end(about_button)
         headerbar.pack_end(self.ptz_sw)
@@ -503,14 +503,13 @@ class CameraCtrlsWindow(Gtk.ApplicationWindow):
 
         if self.pipeline:
             self.pipeline.set_state(Gst.State.NULL)
-            self.pipelint = None
+            self.pipeline = None
 
         if self.widgetSink:
             self.camera_box.remove(self.widgetSink)
             self.widgetSink = None
 
         pipeline_string = "v4l2src device = " + device.real_path + " ! videoconvert ! gtksink name=sink"
-        print(pipeline_string)
         self.pipeline = Gst.parse_launch(pipeline_string)
         gtksink = self.pipeline.get_by_name("sink")
         self.widgetSink = gtksink.props.widget
