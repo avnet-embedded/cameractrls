@@ -1,4 +1,9 @@
-# cameractrls
+# README cameractrls (fork)
+
+This is forked from https://github.com/soyersoyer/cameractrls -- it integrates a gstreamer widget and other minor edits to make the application more suitable for a kiosk-like device.
+<img align='left' height='140' src='./wayland-screenshot-2025-05-27_14-10-46.png'>
+
+# README cameractrls (original)
 
 <img align='left' height='140' src='https://github.com/soyersoyer/cameractrls/raw/main/pkg/hu.irl.cameractrls.svg'>
 
