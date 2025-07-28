@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: (C) 2022 Avnet Embedded GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+name: Pre-Commit
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  pre_commit:
+    runs-on: [self-hosted, arm, support]
+    name: pre-commit
+    timeout-minutes: 250
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.10"
+
+      - name: Install pre-commit
+        run: |
+          sudo apt install -y python3-pip
+          pip3 install --upgrade pre-commit
+
+      - uses: actions/cache@v4.2.3
+        with:
+          path: |
+            ${{ runner.temp }}/pre-commit
+            ~/.oelint
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+            pre-commit
+
+      - name: Run pre-commit
+        run: |
+          cd ${{ github.workspace }}
+          export PRE_COMMIT_HOME=${{ runner.temp }}/pre-commit
+          pre-commit run --show-diff-on-failure --all-files

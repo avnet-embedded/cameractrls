@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: (C) 2024 Avnet Embedded GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+name: Commit Message Guideline
+on:
+  pull_request:
+
+jobs:
+  commit_message_guideline:
+    runs-on: ubuntu-latest
+    name: commit-message-guideline
+    timeout-minutes: 5
+    steps:
+      - if: github.event.pull_request.user.login != 'dependabot[bot]'
+        name: Lint commit message
+        uses: aschbacd/gitlint-action@v1.2.0
+        with:
+          commit-message-body-max-length: 72
+          commit-message-subject-max-length: 60
+          re-commit-message-subject: "^.+: .*$"
+          re-pull-request-title: ".*"
+          prohibit-unknown-commit-committers: false
+          prohibit-unknown-commit-authors: false
