@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: (C) 2024 Avnet Embedded GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+name: Pre-commit cache recreate
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every saturday ~6am
+    - cron: "30 6 * * 6"
+
+jobs:
+  caches-cleanup:
+    runs-on: ubuntu-latest
+    name: "Cleanup pre-commit caches"
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4.2.2
+
+      - name: Cleanup
+        run: |
+          gh extension install actions/gh-actions-cache
+          REPO=${{ github.repository }}
+          echo "Fetching list of cache key"
+          cacheKeysForPR=$(gh actions-cache list -R $REPO --key='pre-commit-' | cut -f 1 )
+          ## Setting this to not fail the workflow while deleting cache keys.
+          set +e
+          echo "Deleting caches..."
+          for cacheKey in $cacheKeysForPR
+          do
+              gh actions-cache delete $cacheKey --confirm
+          done
+          echo "Done"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  recreate-caches:
+    needs: [caches-cleanup]
+    runs-on: ubuntu-latest
+    name: "Recreate clean pre-commit caches"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.10"
+      - name: Install pre-commit
+        run: |
+          sudo apt install -y python3-pip
+          pip3 install --upgrade pre-commit
+
+      - uses: actions/cache@v4.2.3
+        with:
+          path: |
+            ${{ runner.temp }}/pre-commit
+            ~/.oelint
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run pre-commit
+        run: |
+          cd ${{ github.workspace }}
+          rm -rf ~/.oelint
+          export PRE_COMMIT_HOME=${{ runner.temp }}/pre-commit
+          pre-commit run --show-diff-on-failure --all-files

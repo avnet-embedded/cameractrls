@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: (C) 2022 Avnet Embedded GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+name: On Issue
+
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  on_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send message to Teams
+        uses: skitionek/notify-microsoft-teams@v1.0.8
+        with:
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK_ISSUE_NOTIFICATION_URL }}
+          raw: >-
+            {
+              "type": "message",
+              "attachments": [
+                  {
+                      "contentType": "application/vnd.microsoft.card.adaptive",
+                      "content": {
+                          "type": "AdaptiveCard",
+                          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                          "version": "1.4",
+                          "action": "type",
+                          "body": [
+                              {
+                                  "type": "Container",
+                                  "items": [
+                                      {
+                                          "type": "TextBlock",
+                                          "text": "Hello Team! \n:inbox_tray: You got a new ${{ github.event.action }} issue #${{ github.event.issue.number }} in the ${{ github.event.repository.name }} repository."
+                                      },
+                                      {
+                                          "type": "TextBlock",
+                                          "text": "It was opened by a ${{ github.event.issue.author_association }}, ${{ github.event.issue.user }}."
+                                      },
+                                      {
+                                          "type": "ActionSet",
+                                          "actions": [
+                                              {
+                                                  "type": "Action.OpenUrl",
+                                                  "title": "Open the issue",
+                                                  "url": "${{ github.event.issue.html_url }}"
+                                              }
+                                          ]
+                                      }
+                                  ]
+                              }
+                          ]
+                      }
+                  }
+              ]
+            }

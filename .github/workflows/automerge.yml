@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: (C) 2022 Avnet Embedded GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+name: Automerge
+
+on:
+  pull_request:
+    types:
+      - labeled
+      - unlabeled
+      - synchronize
+      - opened
+      - edited
+      - ready_for_review
+      - reopened
+      - unlocked
+
+jobs:
+  auto_merge:
+    runs-on: ubuntu-latest
+    name: auto_merge
+    permissions:
+      pull-requests: write
+      checks: read
+    steps:
+      - name: Check conditions
+        id: conditions
+        if: |
+          github.event.pull_request.user.login != 'dependabot[bot]' &&
+          contains(toJson(github.event.pull_request.labels.*.name), 'automerge')
+        run: |
+          echo "applicable=true" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Get Status of current ref
+        id: get-status
+        if: ${{ steps.conditions.outputs.applicable }}
+        uses: poseidon/wait-for-status-checks@v0.6.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ignore: "auto_merge,pr_notifications"
+          delay: 20s
+          timeout: 21600s
+
+      - uses: hmarr/auto-approve-action@v4.0.0
+        name: auto_approve
+        if: ${{ steps.conditions.outputs.applicable }}
+        with:
+          github-token: ${{ secrets.DISPATCH_PAT }}
+
+      - uses: "pascalgn/automerge-action@v0.16.4"
+        if: ${{ steps.conditions.outputs.applicable }}
+        name: auto_merge
+        env:
+          GITHUB_TOKEN: "${{ secrets.DISPATCH_PAT }}"
+          MERGE_LABELS: "automerge"
+          UPDATE_LABELS: "automerge"
+          MERGE_METHOD: "rebase"
+          MERGE_DELETE_BRANCH: true
+          MERGE_FORKS: false
+          MERGE_RETRIES: "20"
+          MERGE_RETRY_SLEEP: "15000"

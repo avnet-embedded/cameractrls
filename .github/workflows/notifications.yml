@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: (C) 2024 Avnet Embedded GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+name: Notifications in teams for each PR
+
+on:
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  pr_notifications:
+    runs-on: ubuntu-latest
+    name: pr_notifications
+    steps:
+      - name: Checks out repository
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: get email address
+        id: email
+        run: |
+          echo "email=$(git log -1 --format='%ae' | cut -d '@' -f1 | cut -d '+' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Teams notification for notifications
+        if: |
+          contains(toJson(github.event.pull_request.labels.*.name), 'automerge') || contains(github.event.pull_request.title, 'sync: synced file(s) with avnet-embedded/ci-automation')
+        uses: skitionek/notify-microsoft-teams@v1.0.8
+        with:
+          job: ${{ toJson(job) }}
+          steps: ${{ toJson(steps) }}
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK_PR_NOTIFICATION_URL }}
+          overwrite: "{	title: `New PR opened : ${{ github.event.pull_request.title }}`,	sections: [{activityTitle: `PR opened in: ${{ github.repository }}\nsource branch: ${{ github.head_ref }}\ntarget branch : ${{ github.base_ref}} \n`,facts: [{	name: `Opened by`,value: `${{ steps.email.outputs.email }}`	}],	markdown: true}] }"

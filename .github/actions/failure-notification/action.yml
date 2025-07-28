@@ -1,0 +1,88 @@
+# SPDX-FileCopyrightText: (C) 2024 Avnet Embedded GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+inputs:
+  profile:
+    description: "Build profile"
+    required: false
+    default: ""
+  enable-teams-notifications:
+    description: "Store artifacts"
+    required: true
+  teams-webhook-alert-url:
+    description: "Webhook for Teams annoucements"
+    required: true
+  job-input:
+    description: "toJson(job) for parent job"
+    required: true
+  steps-input:
+    description: "toJson(steps) for parent job"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Composite sanity checks
+      run: |
+        if [ "${{ ! inputs.job-input }}" = "true" ]; then echo "::error::job-input needs to be set" && exit 1; fi
+        if [ "${{ ! inputs.steps-input }}" = "true" ]; then echo "::error::steps-input needs to be set" && exit 1; fi
+        if [ "${{ ! inputs.enable-teams-notifications }}" = "true" ]; then echo "::error::enable-teams-notifications needs to be set" && exit 1; fi
+        if [ "${{ ! inputs.teams-webhook-alert-url }}" = "true" ]; then echo "::error::teams-webhook-alert-url needs to be set" && exit 1; fi
+      shell: bash
+
+    - name: Expand Steps
+      id: expand-steps
+      run: |
+        import json
+        import os
+
+        org_steps = ${{ inputs.steps-input }}
+        steps = {}
+
+        def recursive_expand(in_, key = ''):
+            global steps
+            sub = in_.get('outputs', {}).get('steps', {})
+            if sub:
+                if isinstance(sub, str):
+                    sub = json.loads(sub)
+                for k, v in sub.items():
+                    recursive_expand(v, key + f'.{k}')
+            if 'outcome' in in_:
+                steps[f'{key}'] = { 'outcome': in_.get('outcome', ''), 'conclusion': in_.get('conclusion', ''), 'outputs': {} }
+
+        for k, v in org_steps.items():
+            recursive_expand(v, k)
+
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+            out.write(f'expanded_steps={json.dumps(steps)}\n')
+            out.write(f'modified_job={json.dumps({"status": "failure"})}\n')
+      shell: python
+
+    - name: Pipeline summary
+      run: |
+        import os
+        steps = ${{ steps.expand-steps.outputs.expanded_steps }}
+
+        def outcome(in_):
+          _outcome = in_.get('outcome', '')
+          if _outcome in ['success']:
+            return '✅'
+          if _outcome in ['skipped']:
+            return '⏩'
+          return '❌'
+
+        with open(os.environ.get('GITHUB_STEP_SUMMARY'), 'a') as i:
+          i.write('# Pipeline summary\n\n')
+          i.write('## Steps\n\n')
+          for k, v in steps.items():
+            i.write(f'- {k}: {outcome(v)}\n')
+      shell: python
+
+    - name: Teams notification for failure
+      uses: skitionek/notify-microsoft-teams@v1.0.8
+      if: inputs.enable-teams-notifications == 'true' || contains(inputs.profile, 'slack-notification')
+      with:
+        job: ${{ steps.expand-steps.outputs.modified_job }}
+        steps: ${{ steps.expand-steps.outputs.expanded_steps }}
+        webhook_url: ${{ inputs.teams-webhook-alert-url }}
