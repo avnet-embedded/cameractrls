@@ -12,47 +12,32 @@ jobs:
   on_issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Send message to Teams
-        uses: skitionek/notify-microsoft-teams@v1.0.8
-        with:
-          webhook_url: ${{ secrets.TEAMS_WEBHOOK_ISSUE_NOTIFICATION_URL }}
-          raw: >-
-            {
-              "type": "message",
-              "attachments": [
-                  {
-                      "contentType": "application/vnd.microsoft.card.adaptive",
-                      "content": {
-                          "type": "AdaptiveCard",
-                          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                          "version": "1.4",
-                          "action": "type",
-                          "body": [
-                              {
-                                  "type": "Container",
-                                  "items": [
-                                      {
-                                          "type": "TextBlock",
-                                          "text": "Hello Team! \n:inbox_tray: You got a new ${{ github.event.action }} issue #${{ github.event.issue.number }} in the ${{ github.event.repository.name }} repository."
-                                      },
-                                      {
-                                          "type": "TextBlock",
-                                          "text": "It was opened by a ${{ github.event.issue.author_association }}, ${{ github.event.issue.user }}."
-                                      },
-                                      {
-                                          "type": "ActionSet",
-                                          "actions": [
-                                              {
-                                                  "type": "Action.OpenUrl",
-                                                  "title": "Open the issue",
-                                                  "url": "${{ github.event.issue.html_url }}"
-                                              }
-                                          ]
-                                      }
-                                  ]
-                              }
-                          ]
-                      }
-                  }
-              ]
-            }
+      - name: Sendgrid
+        run: |
+          curl -X "POST" "https://api.sendgrid.com/v3/mail/send" \
+                 -H "Authorization: Bearer $SENDGRID_API_KEY" \
+                 -H 'Content-Type: application/json' \
+                 -d '{
+             "from":{
+                "email":"notification-issue@simpleswitch.app"
+             },
+             "personalizations":[
+                {
+                   "to":[
+                      ${{ secrets.LIST_EMAILS_NOTIFICATIONS }}
+                   ],
+                   "dynamic_template_data":{
+                      "subject": "New issue opened : $ISSUE on ${{ github.repository }}",
+                      "action": "${{ github.event.action }}",
+                      "id": "${{ github.event.issue.number }}",
+                      "repo": "${{ github.event.repository.name }}",
+                      "author": "${{ github.event.author_association }}",
+                      "url": "${{ github.event.issue.html }}",
+                   }
+                }
+             ],
+             "template_id":"${{ secrets.EMAIL_TEMPLATE_ISSUE }}"
+          }'
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          ISSUE: ${{ github.event.issue.title }}

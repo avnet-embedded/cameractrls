@@ -24,12 +24,34 @@ jobs:
         run: |
           echo "email=$(git log -1 --format='%ae' | cut -d '@' -f1 | cut -d '+' -f2)" >> $GITHUB_OUTPUT
 
-      - name: Teams notification for notifications
-        if: |
-          contains(toJson(github.event.pull_request.labels.*.name), 'automerge') || contains(github.event.pull_request.title, 'sync: synced file(s) with avnet-embedded/ci-automation')
-        uses: skitionek/notify-microsoft-teams@v1.0.8
-        with:
-          job: ${{ toJson(job) }}
-          steps: ${{ toJson(steps) }}
-          webhook_url: ${{ secrets.TEAMS_WEBHOOK_PR_NOTIFICATION_URL }}
-          overwrite: "{	title: `New PR opened : ${{ github.event.pull_request.title }}`,	sections: [{activityTitle: `PR opened in: ${{ github.repository }}\nsource branch: ${{ github.head_ref }}\ntarget branch : ${{ github.base_ref}} \n`,facts: [{	name: `Opened by`,value: `${{ steps.email.outputs.email }}`	}],	markdown: true}] }"
+      - name: Sendgrid
+        run: |
+          curl -X "POST" "https://api.sendgrid.com/v3/mail/send" \
+                 -H "Authorization: Bearer $SENDGRID_API_KEY" \
+                 -H 'Content-Type: application/json' \
+                 -d '{
+             "from":{
+                "email":"notification-pr@simpleswitch.app"
+             },
+             "personalizations":[
+                {
+                   "to":[
+                      ${{ secrets.LIST_EMAILS_NOTIFICATIONS }}
+                   ],
+                   "dynamic_template_data":{
+                      "subject": "New PR opened : $PR on ${{ github.repository }}",
+                      "author": "${{ steps.email.outputs.email }}",
+                      "repo": "${{ github.repository }}",
+                      "source": "$SOURCE",
+                      "target": "$TARGET",
+                      "url": "${{ github.event.pull_request.html_url }}",
+                   }
+                }
+             ],
+             "template_id":"${{ secrets.EMAIL_TEMPLATE_PR }}"
+          }'
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          PR: ${{ github.event.pull_request.title }}
+          SOURCE: ${{ github.head_ref }}
+          TARGET: ${{ github.base_ref }}

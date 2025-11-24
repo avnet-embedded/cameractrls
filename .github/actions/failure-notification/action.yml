@@ -79,10 +79,32 @@ runs:
             i.write(f'- {k}: {outcome(v)}\n')
       shell: python
 
-    - name: Teams notification for failure
-      uses: skitionek/notify-microsoft-teams@v1.0.8
+    - name: Sendgrid
       if: inputs.enable-teams-notifications == 'true' || contains(inputs.profile, 'slack-notification')
-      with:
-        job: ${{ steps.expand-steps.outputs.modified_job }}
-        steps: ${{ steps.expand-steps.outputs.expanded_steps }}
-        webhook_url: ${{ inputs.teams-webhook-alert-url }}
+      run: |
+        curl -X "POST" "https://api.sendgrid.com/v3/mail/send" \
+               -H "Authorization: Bearer $SENDGRID_API_KEY" \
+               -H 'Content-Type: application/json' \
+               -d '{
+           "from":{
+              "email":"notification-release@simpleswitch.app"
+           },
+           "personalizations":[
+              {
+                 "to":[
+                    {
+                       "email":"smagninfeysot@witekio.com"
+                    }
+                 ],
+                 "dynamic_template_data":{
+                    "subject": "Failure on release job",
+                    "job": "release",
+                    "job_id": "${{ github.run_id }}",
+                    "url_send": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                 }
+              }
+           ],
+           "template_id":"${{ secrets.EMAIL_TEMPLATE_FAILED_JOB }}"
+        }'
+      env:
+        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
