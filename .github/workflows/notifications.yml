@@ -29,27 +29,27 @@ jobs:
           curl -X "POST" "https://api.sendgrid.com/v3/mail/send" \
                  -H "Authorization: Bearer $SENDGRID_API_KEY" \
                  -H 'Content-Type: application/json' \
-                 -d '{
-             "from":{
-                "email":"notification-pr@simpleswitch.app"
+                 -d "{
+             \"from\":{
+                \"email\":\"notification-pr@simpleswitch.app\"
              },
-             "personalizations":[
+             \"personalizations\":[
                 {
-                   "to":[
+                   \"to\":[
                       ${{ secrets.LIST_EMAILS_NOTIFICATIONS }}
                    ],
-                   "dynamic_template_data":{
-                      "subject": "New PR opened : $PR on ${{ github.repository }}",
-                      "author": "${{ steps.email.outputs.email }}",
-                      "repo": "${{ github.repository }}",
-                      "source": "$SOURCE",
-                      "target": "$TARGET",
-                      "url": "${{ github.event.pull_request.html_url }}",
+                   \"dynamic_template_data\":{
+                      \"subject\": \"New PR opened : $PR on ${{ github.repository }}\",
+                      \"author\": \"${{ steps.email.outputs.email }}\",
+                      \"repo\": \"${{ github.repository }}\",
+                      \"source\": \"$SOURCE\",
+                      \"target\": \"$TARGET\",
+                      \"url\": \"${{ github.event.pull_request.html_url }}\",
                    }
                 }
              ],
-             "template_id":"${{ secrets.EMAIL_TEMPLATE_PR }}"
-          }'
+             \"template_id\":\"${{ secrets.EMAIL_TEMPLATE_PR }}\"
+          }"
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           PR: ${{ github.event.pull_request.title }}
