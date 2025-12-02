@@ -7,17 +7,20 @@ inputs:
     description: "Build profile"
     required: false
     default: ""
-  enable-teams-notifications:
-    description: "Store artifacts"
-    required: true
-  teams-webhook-alert-url:
-    description: "Webhook for Teams annoucements"
-    required: true
   job-input:
     description: "toJson(job) for parent job"
     required: true
   steps-input:
     description: "toJson(steps) for parent job"
+    required: true
+  enable-email-notifications:
+    description: "email notifications"
+    required: true
+  sendgrid-api-key:
+    description: "Sendgrid api token"
+    required: true
+  sendgrid-email-template:
+    description: "template to use"
     required: true
 
 runs:
@@ -27,8 +30,9 @@ runs:
       run: |
         if [ "${{ ! inputs.job-input }}" = "true" ]; then echo "::error::job-input needs to be set" && exit 1; fi
         if [ "${{ ! inputs.steps-input }}" = "true" ]; then echo "::error::steps-input needs to be set" && exit 1; fi
-        if [ "${{ ! inputs.enable-teams-notifications }}" = "true" ]; then echo "::error::enable-teams-notifications needs to be set" && exit 1; fi
-        if [ "${{ ! inputs.teams-webhook-alert-url }}" = "true" ]; then echo "::error::teams-webhook-alert-url needs to be set" && exit 1; fi
+        if [ "${{ ! inputs.sendgrid-api-key }}" = "true" ]; then echo "::error::sendgrid-api-key needs to be set" && exit 1; fi
+        if [ "${{ ! inputs.sendgrid-email-template }}" = "true" ]; then echo "::error::sendgrid-email-template needs to be set" && exit 1; fi
+        if [ "${{ ! inputs.enable-email-notifications }}" = "true" ]; then echo "::error::sendgrid-email-template needs to be set" && exit 1; fi
       shell: bash
 
     - name: Expand Steps
@@ -80,7 +84,7 @@ runs:
       shell: python
 
     - name: Sendgrid
-      if: inputs.enable-teams-notifications == 'true' || contains(inputs.profile, 'slack-notification')
+      if: inputs.enable-email-notifications == 'true' || contains(inputs.profile, 'slack-notification')
       run: |
         curl -X "POST" "https://api.sendgrid.com/v3/mail/send" \
                -H "Authorization: Bearer $SENDGRID_API_KEY" \
@@ -104,7 +108,7 @@ runs:
                  }
               }
            ],
-           "template_id":"${{ secrets.EMAIL_TEMPLATE_FAILED_JOB }}"
+           "template_id":"${{ inputs.sendgrid-email-template }}"
         }'
       env:
-        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        SENDGRID_API_KEY: ${{ inputs.sendgrid-api-key }}
