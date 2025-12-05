@@ -17,6 +17,7 @@ jobs:
       - name: Checks out repository
         uses: actions/checkout@v5.0.1
         with:
+          token: ${{ secrets.DISPATCH_PAT }}
           fetch-depth: 0
 
       - name: get email address
