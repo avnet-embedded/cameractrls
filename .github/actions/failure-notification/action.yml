@@ -85,6 +85,7 @@ runs:
 
     - name: Sendgrid
       if: inputs.enable-email-notifications == 'true' || contains(inputs.profile, 'slack-notification')
+      shell: bash
       run: |
         curl -X "POST" "https://api.sendgrid.com/v3/mail/send" \
                -H "Authorization: Bearer $SENDGRID_API_KEY" \
